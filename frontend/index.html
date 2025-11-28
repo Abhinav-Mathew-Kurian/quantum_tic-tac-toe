@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quantum Encoded Tic-Tac-Toe</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        h2 {
+            text-align: center;
+        }
+        .board {
+            width: 300px;
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            margin: 20px auto;
+            background: white;
+        }
+        .cell {
+            border: 2px solid #333;
+            height: 100px;
+            font-size: 48px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            background: white;
+            color: #333;
+            transition: all 0.3s;
+        }
+        .cell:hover {
+            background: #f0f0f0;
+            transform: scale(1.05);
+        }
+        #quantum-info {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 10px;
+            max-width: 600px;
+            margin: 0 auto;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h2>⚛️ Quantum Encoded Tic-Tac-Toe ⚛️</h2>
+    <p style="text-align: center;">Each move is determined by quantum superposition and entanglement</p>
+    <div class="board" id="board"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
