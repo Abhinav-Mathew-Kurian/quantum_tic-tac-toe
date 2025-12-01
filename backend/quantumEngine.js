@@ -1,43 +1,38 @@
+
+
 const QuantumCircuit = require("quantum-circuit");
 
 function simulateQuantumMove() {
-    // 2-qubit quantum circuit
+    // Create a 2-qubit quantum circuit
     const circuit = new QuantumCircuit(2);
 
-    // Put both qubits in superposition
+    // Add Hadamard gates for superposition
     circuit.addGate("h", -1, 0);
     circuit.addGate("h", -1, 1);
 
-    // Entangle them
+    // Add CNOT gate for entanglement
     circuit.addGate("cx", -1, [0, 1]);
 
-    // Measurements
+    // Measure both qubits
     circuit.addMeasure(0, "c", 0);
     circuit.addMeasure(1, "c", 1);
 
-    // Run quantum circuit
+    // Run the circuit
     circuit.run();
 
-    // Classical register (0–3)
+    // Get measurement results
     const creg = circuit.getCregValue("c");
-
-    // Map 0–3 into 0–2 (qutrit space)
-    const qutritState = creg % 3;
-
-    // Map qutrit to board symbol
-    const symbols = ["EMPTY", "X", "O"];
-    const boardSymbol = symbols[qutritState];
+    
+    // Convert measurement to cell position (0-8)
+    const chosenCell = creg % 9;
 
     return {
-        chosenState: qutritState,     // 0=empty, 1=X, 2=O
-        boardSymbol: boardSymbol,     // "EMPTY", "X", "O"
+        chosenCell: chosenCell,
         rawQuantumResult: {
-            measured: creg.toString(2).padStart(2, "0"),
+            measured: creg.toString(2).padStart(2, '0'),
             classicalRegister: creg,
-            qutritMapped: qutritState,
-            symbol: boardSymbol,
             probabilities: circuit.probabilities(),
-            quantumState: "Collapsed to qutrit: " + qutritState
+            quantumState: "Superposition collapsed to: " + creg
         }
     };
 }
