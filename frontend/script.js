@@ -7,6 +7,8 @@ const infoDiv = document.createElement("div");
 infoDiv.id = "quantum-info";
 infoDiv.style.marginTop = "20px";
 infoDiv.style.fontFamily = "monospace";
+infoDiv.style.maxHeight = "400px";
+infoDiv.style.overflowY = "auto";
 document.body.appendChild(infoDiv);
 
 for (let i = 0; i < 9; i++) {
@@ -18,70 +20,110 @@ for (let i = 0; i < 9; i++) {
 }
 
 async function makeMove(index, cell) {
-    if (gameBoard[index] !== null) {
-        alert("Cell already taken!");
-        return;
-    }
 
     cell.style.pointerEvents = "none";
-    
-    // Show quantum processing
-    cell.textContent = "⚛️";
+
+    // Show quantum processing animation
+    cell.textContent = "🧠";
     cell.style.opacity = "0.5";
 
     try {
+        // Send ONLY board state — ignore clicked cell
         const res = await fetch("http://localhost:5000/api/move", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ cell: index }),
+            body: JSON.stringify({ boardState: gameBoard }),
         });
 
         const data = await res.json();
 
-        // Quantum measurement determines symbol
-        const symbol = data.rawQuantumResult.classicalRegister % 2 === 0 ? "O" : "X";
-        
-        cell.textContent = symbol;
-        cell.style.opacity = "1";
-        gameBoard[index] = symbol;
+        const realCell = data.chosenCell;
+        const symbol = data.symbol;
+
+        // --- FIX: Clear ALL brain placeholders ---
+        document.querySelectorAll(".cell").forEach(c => {
+            if (c.textContent === "🧠") c.textContent = "";
+            c.style.opacity = "1";
+        });
+
+        // Place the REAL quantum-chosen symbol
+        const chosen = document.querySelector(`[data-index="${realCell}"]`);
+        chosen.textContent = symbol;
+        chosen.style.opacity = "1";
+
+
+        // Update internal board state
+        gameBoard[realCell] = symbol;
         moveCount++;
 
-        // Display quantum information
+        // Display full quantum breakdown
         displayQuantumInfo(data, symbol, moveCount);
 
-        // Check for winner
+        // Apply winner/draw checks
         if (checkWinner()) {
             setTimeout(() => {
-                alert(`${checkWinner()} wins via quantum collapse! 🎉⚛️`);
+                alert(`${checkWinner()} wins via quantum intelligence! 🎉🧠`);
                 resetGame();
             }, 100);
         } else if (gameBoard.every(cell => cell !== null)) {
             setTimeout(() => {
-                alert("Quantum superposition resolved to a draw! 🌀");
+                alert("Quantum analysis resulted in a draw! 🌀");
                 resetGame();
             }, 100);
         }
 
     } catch (error) {
-        console.error("Quantum measurement error:", error);
-        alert("Quantum decoherence detected! Try again.");
-        cell.textContent = "";
-        cell.style.opacity = "1";
+        console.error("Quantum analysis failed:", error);
+        alert("Quantum engine crashed! Try again.");
     }
 
     cell.style.pointerEvents = "auto";
 }
 
+
 function displayQuantumInfo(data, symbol, move) {
-    const info = `
-        <h3>🔬 Quantum Measurement #${move}</h3>
-        <strong>Measured State:</strong> |${data.rawQuantumResult.measured}⟩<br>
-        <strong>Classical Register:</strong> ${data.rawQuantumResult.classicalRegister}<br>
-        <strong>Collapsed to:</strong> ${symbol}<br>
+    // Create analysis table
+    let analysisTable = `
+        <h3>🔬 Quantum Analysis #${move}</h3>
+        <strong>Symbol Played:</strong> ${symbol}<br>
+        <strong>Chosen Cell:</strong> ${data.chosenCell}<br>
+        <strong>Strategy:</strong> Analyzed all valid moves<br>
+        <strong>Entropy:</strong> ${data.rawQuantumResult.entropy}<br>
+        <strong>Purity:</strong> ${data.rawQuantumResult.purity}<br>
+        <br>
+        <strong>📊 Move Scores (All Options Analyzed):</strong><br>
+        <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+            <tr style="background: rgba(255,255,255,0.1);">
+                <th style="padding: 5px; border: 1px solid rgba(255,255,255,0.3);">Cell</th>
+                <th style="padding: 5px; border: 1px solid rgba(255,255,255,0.3);">Score</th>
+                <th style="padding: 5px; border: 1px solid rgba(255,255,255,0.3);">Entropy</th>
+                <th style="padding: 5px; border: 1px solid rgba(255,255,255,0.3);">Purity</th>
+            </tr>
+    `;
+
+    data.moveAnalysis.forEach((move, idx) => {
+        const isChosen = move.cellIndex === data.chosenCell;
+        const bgColor = isChosen ? 'rgba(0,255,0,0.2)' : 'transparent';
+        const marker = isChosen ? '✓' : '';
+
+        analysisTable += `
+            <tr style="background: ${bgColor};">
+                <td style="padding: 5px; border: 1px solid rgba(255,255,255,0.3);">${move.cellIndex} ${marker}</td>
+                <td style="padding: 5px; border: 1px solid rgba(255,255,255,0.3);">${move.score.toFixed(2)}</td>
+                <td style="padding: 5px; border: 1px solid rgba(255,255,255,0.3);">${move.entropy.toFixed(2)}</td>
+                <td style="padding: 5px; border: 1px solid rgba(255,255,255,0.3);">${move.purity.toFixed(2)}</td>
+            </tr>
+        `;
+    });
+
+    analysisTable += `
+        </table>
+        <br>
         <strong>Quantum State:</strong> ${data.rawQuantumResult.quantumState}<br>
         <hr>
     `;
-    document.getElementById("quantum-info").innerHTML = info + 
+
+    document.getElementById("quantum-info").innerHTML = analysisTable +
         document.getElementById("quantum-info").innerHTML;
 }
 
@@ -94,8 +136,8 @@ function checkWinner() {
 
     for (let pattern of winPatterns) {
         const [a, b, c] = pattern;
-        if (gameBoard[a] && 
-            gameBoard[a] === gameBoard[b] && 
+        if (gameBoard[a] &&
+            gameBoard[a] === gameBoard[b] &&
             gameBoard[a] === gameBoard[c]) {
             return gameBoard[a];
         }
@@ -109,5 +151,6 @@ function resetGame() {
     document.querySelectorAll(".cell").forEach(cell => {
         cell.textContent = "";
     });
-    document.getElementById("quantum-info").innerHTML = "<h3>New quantum game started</h3>";
+    document.getElementById("quantum-info").innerHTML =
+        "<h3>🧠 New quantum game - Intelligent analysis enabled!</h3>";
 }
