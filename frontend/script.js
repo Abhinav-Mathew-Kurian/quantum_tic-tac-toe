@@ -29,7 +29,7 @@ async function makeMove(index, cell) {
 
     try {
         // Send ONLY board state — ignore clicked cell
-        const res = await ffetch("/api/move", {
+        const res = await fetch("/api/move", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ boardState: gameBoard }),
