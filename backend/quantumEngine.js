@@ -1,17 +1,9 @@
 // ============================================================================
-// INTELLIGENT QUANTUM ENGINE - Actually Uses Quantum Information!
-// ============================================================================
-// This version analyzes quantum features for all possible moves and chooses
-// strategically, rather than measuring randomly.
+// INTELLIGENT QUANTUM ENGINE - Always plays O against human X
 // ============================================================================
 
 const QuantumCircuit = require("quantum-circuit");
 
-/**
- * STEP 1: Encode board state into quantum circuit (Feature Map)
- * 
- * Same as before - creates quantum state based on board configuration
- */
 function encodeBoard(boardState) {
     const circuit = new QuantumCircuit(4);
     
@@ -51,30 +43,16 @@ function encodeBoard(boardState) {
     return circuit;
 }
 
-/**
- * STEP 2: Extract quantum features WITHOUT measuring
- * 
- * KEY DIFFERENCE: Instead of measuring randomly, we extract features:
- * - Probabilities: Likelihood of each quantum state
- * - Entropy: How "uncertain" the quantum state is
- * - Purity: How "mixed" vs "pure" the quantum state is
- * - Dominant states: Which states have highest probability
- */
 function extractQuantumFeatures(circuit) {
     circuit.run();
     const probs = circuit.probabilities();
     
-    // Calculate entropy: measures uncertainty in quantum state
-    // Lower entropy = more certain/committed state
     const entropy = -probs.reduce((sum, p) => {
         return sum + (p > 1e-10 ? p * Math.log2(p) : 0);
     }, 0);
     
-    // Calculate purity: measures how "pure" vs "mixed" the state is
-    // Higher purity = more focused/coherent state
     const purity = probs.reduce((sum, p) => sum + p * p, 0);
     
-    // Find dominant quantum states (top 3 most likely)
     const dominantStates = probs
         .map((p, idx) => ({ state: idx, prob: p }))
         .sort((a, b) => b.prob - a.prob)
@@ -88,43 +66,26 @@ function extractQuantumFeatures(circuit) {
     };
 }
 
-/**
- * STEP 3: Score a potential move based on quantum features
- * 
- * THIS IS THE INTELLIGENCE!
- * We simulate playing at each cell and evaluate the resulting quantum state
- */
-function scoreMove(boardState, cellIndex, symbol) {
-    // Can't play on occupied cell
+function scoreMove(boardState, cellIndex) {
+    // Always playing as O
+    const symbol = 'O';
+    
     if (boardState[cellIndex] !== null) {
         return { score: -Infinity, features: null };
     }
     
-    // Simulate playing this move
     const testBoard = [...boardState];
     testBoard[cellIndex] = symbol;
     
-    // Encode the hypothetical board state
     const circuit = encodeBoard(testBoard);
-    
-    // Extract quantum features for this hypothetical state
     const features = extractQuantumFeatures(circuit);
     
-    // ========================================================================
-    // SCORING FUNCTION - Where quantum features become strategic
-    // ========================================================================
     let score = 0;
     
-    // 1. Favor moves that create LOWER entropy
-    //    (Lower entropy = more "certain" quantum state = stronger position)
+    // Quantum-based scoring
     score += (4 - features.entropy) * 10;
-    
-    // 2. Favor moves that create HIGHER purity
-    //    (Higher purity = more "focused" quantum state = clearer strategy)
     score += features.purity * 50;
     
-    // 3. Check if this cell appears in dominant quantum states
-    //    (The quantum state naturally "wants" to collapse to this cell)
     const cellInDominant = features.dominantStates.some(s => 
         (s.state % 9) === cellIndex
     );
@@ -132,12 +93,11 @@ function scoreMove(boardState, cellIndex, symbol) {
         score += 30;
     }
     
-    // 4. Add quantum bonus from probability
     score += features.dominantStates[0].prob * 20;
     
-    // 5. Classical strategy bonuses
-    if (cellIndex === 4) score += 15;  // Center is valuable
-    if ([0, 2, 6, 8].includes(cellIndex)) score += 10;  // Corners are good
+    // Classical strategy bonuses
+    if (cellIndex === 4) score += 15;
+    if ([0, 2, 6, 8].includes(cellIndex)) score += 10;
     
     return { 
         score, 
@@ -148,29 +108,15 @@ function scoreMove(boardState, cellIndex, symbol) {
     };
 }
 
-/**
- * MAIN FUNCTION: Intelligent quantum move selection
- * 
- * Instead of measuring randomly, we:
- * 1. Try all possible moves
- * 2. Score each based on quantum features
- * 3. Choose the best one strategically
- */
 function simulateQuantumMove(boardState = Array(9).fill(null)) {
+    // AI always plays O
+    const symbol = 'O';
     
-    // Determine which symbol we're playing
-    const xCount = boardState.filter(c => c === 'X').length;
-    const oCount = boardState.filter(c => c === 'O').length;
-    const symbol = xCount <= oCount ? 'X' : 'O';
-    
-    // ========================================================================
-    // ANALYZE ALL POSSIBLE MOVES
-    // ========================================================================
     const moveAnalysis = [];
     
     for (let cellIndex = 0; cellIndex < 9; cellIndex++) {
         if (boardState[cellIndex] === null) {
-            const { score, features } = scoreMove(boardState, cellIndex, symbol);
+            const { score, features } = scoreMove(boardState, cellIndex);
             
             moveAnalysis.push({
                 cellIndex,
@@ -184,12 +130,10 @@ function simulateQuantumMove(boardState = Array(9).fill(null)) {
     // Sort by score (best moves first)
     moveAnalysis.sort((a, b) => b.score - a.score);
     
-    // ========================================================================
-    // CHOOSE BEST MOVE
-    // ========================================================================
+    // Choose best move
     const chosenMove = moveAnalysis[0];
     
-    // Get final quantum state information for display
+    // Get final quantum state
     const finalBoard = [...boardState];
     finalBoard[chosenMove.cellIndex] = symbol;
     const finalCircuit = encodeBoard(finalBoard);
@@ -197,7 +141,7 @@ function simulateQuantumMove(boardState = Array(9).fill(null)) {
     
     return {
         chosenCell: chosenMove.cellIndex,
-        moveAnalysis: moveAnalysis,  // All moves with their scores
+        moveAnalysis: moveAnalysis,
         symbol: symbol,
         rawQuantumResult: {
             measured: "Strategic choice based on quantum feature analysis",
@@ -210,7 +154,4 @@ function simulateQuantumMove(boardState = Array(9).fill(null)) {
     };
 }
 
-// ============================================================================
-// EXPORTS
-// ============================================================================
 module.exports = { simulateQuantumMove };

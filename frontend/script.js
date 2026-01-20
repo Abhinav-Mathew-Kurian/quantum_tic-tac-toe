@@ -1,6 +1,7 @@
 const board = document.getElementById("board");
 let gameBoard = Array(9).fill(null);
 let moveCount = 0;
+let isProcessing = false; // Prevent multiple clicks during AI turn
 
 // Add quantum info display
 const infoDiv = document.createElement("div");
@@ -9,6 +10,7 @@ infoDiv.style.marginTop = "20px";
 infoDiv.style.fontFamily = "monospace";
 infoDiv.style.maxHeight = "400px";
 infoDiv.style.overflowY = "auto";
+infoDiv.innerHTML = "<h3>🧠 Click any cell to start. You are X!</h3>";
 document.body.appendChild(infoDiv);
 
 for (let i = 0; i < 9; i++) {
@@ -20,15 +22,47 @@ for (let i = 0; i < 9; i++) {
 }
 
 async function makeMove(index, cell) {
+    // Ignore if cell is occupied or AI is thinking
+    if (gameBoard[index] !== null || isProcessing) {
+        return;
+    }
 
+    // STEP 1: User plays X
+    gameBoard[index] = 'X';
+    cell.textContent = 'X';
     cell.style.pointerEvents = "none";
+    moveCount++;
 
-    // Show quantum processing animation
-    cell.textContent = "🧠";
-    cell.style.opacity = "0.5";
+    // Check if user won
+    if (checkWinner()) {
+        setTimeout(() => {
+            alert(`X wins! You beat the quantum engine! 🎉`);
+            resetGame();
+        }, 100);
+        return;
+    }
+
+    // Check for draw
+    if (gameBoard.every(cell => cell !== null)) {
+        setTimeout(() => {
+            alert("Draw! The quantum engine couldn't beat you! 🌀");
+            resetGame();
+        }, 100);
+        return;
+    }
+
+    // STEP 2: Quantum engine plays O
+    isProcessing = true;
+    
+    // Show quantum processing
+    const tempDiv = document.createElement("div");
+    tempDiv.style.textAlign = "center";
+    tempDiv.style.marginTop = "10px";
+    tempDiv.innerHTML = "🧠 Quantum engine analyzing...";
+    document.body.insertBefore(tempDiv, infoDiv);
 
     try {
-        // Send ONLY board state — ignore clicked cell
+        // Call quantum engine with current board
         const res = await fetch("/api/move", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -37,55 +71,60 @@ async function makeMove(index, cell) {
 
         const data = await res.json();
 
-        const realCell = data.chosenCell;
-        const symbol = data.symbol;
+        // Remove processing message
+        tempDiv.remove();
 
-        // --- FIX: Clear ALL brain placeholders ---
-        document.querySelectorAll(".cell").forEach(c => {
-            if (c.textContent === "🧠") c.textContent = "";
-            c.style.opacity = "1";
-        });
+        const aiCell = data.chosenCell;
 
-        // Place the REAL quantum-chosen symbol
-        const chosen = document.querySelector(`[data-index="${realCell}"]`);
-        chosen.textContent = symbol;
-        chosen.style.opacity = "1";
-
+        // Place O on the board
+        const chosenCell = document.querySelector(`[data-index="${aiCell}"]`);
+        chosenCell.textContent = 'O';
+        chosenCell.style.pointerEvents = "none";
 
         // Update internal board state
-        gameBoard[realCell] = symbol;
+        gameBoard[aiCell] = 'O';
         moveCount++;
 
-        // Display full quantum breakdown
-        displayQuantumInfo(data, symbol, moveCount);
+        // Display quantum analysis
+        displayQuantumInfo(data, 'O', moveCount);
 
-        // Apply winner/draw checks
+        // Check if AI won
         if (checkWinner()) {
             setTimeout(() => {
-                alert(`${checkWinner()} wins via quantum intelligence! 🎉🧠`);
+                alert(`O wins! The quantum engine defeated you! 🧠⚛️`);
                 resetGame();
             }, 100);
-        } else if (gameBoard.every(cell => cell !== null)) {
+            return;
+        }
+
+        // Check for draw
+        if (gameBoard.every(cell => cell !== null)) {
             setTimeout(() => {
-                alert("Quantum analysis resulted in a draw! 🌀");
+                alert("Draw! Quantum analysis resulted in a draw! 🌀");
                 resetGame();
             }, 100);
+            return;
         }
 
     } catch (error) {
+        tempDiv.remove();
         console.error("Quantum analysis failed:", error);
         alert("Quantum engine crashed! Try again.");
+        // Undo user's move on error
+        gameBoard[index] = null;
+        cell.textContent = "";
+        cell.style.pointerEvents = "auto";
+        moveCount--;
     }
 
-    cell.style.pointerEvents = "auto";
+    isProcessing = false;
 }
-
 
 function displayQuantumInfo(data, symbol, move) {
     // Create analysis table
     let analysisTable = `
-        <h3>🔬 Quantum Analysis #${move}</h3>
-        <strong>Symbol Played:</strong> ${symbol}<br>
+        <h3>🔬 Quantum Analysis #${Math.floor(move/2)}</h3>
+        <strong>AI Symbol Played:</strong> ${symbol}<br>
         <strong>Chosen Cell:</strong> ${data.chosenCell}<br>
         <strong>Strategy:</strong> Analyzed all valid moves<br>
         <strong>Entropy:</strong> ${data.rawQuantumResult.entropy}<br>
@@ -148,9 +187,11 @@ function checkWinner() {
 function resetGame() {
     gameBoard = Array(9).fill(null);
     moveCount = 0;
+    isProcessing = false;
     document.querySelectorAll(".cell").forEach(cell => {
         cell.textContent = "";
+        cell.style.pointerEvents = "auto";
     });
     document.getElementById("quantum-info").innerHTML =
-        "<h3>🧠 New quantum game - Intelligent analysis enabled!</h3>";
+        "<h3>🧠 New game! You are X. Click any cell to start!</h3>";
 }
